@@ -1,11 +1,14 @@
 #include <iostream>
 #include <cmath>
 #include <unistd.h>
+#include <iomanip>
+#include <SDL2/SDL.h>
 
 #include "Object.h"
 
-#define G pow(6.67 * 10,-11)
+#define G 6.67 * pow( 10,-11)
 #define PI 3.14159265358979323
+#define WINDOW_WIDTH 700
 
 void setLength(vector& v, double length);
 double getLength(vector v);
@@ -45,10 +48,10 @@ double distance(Object o, Object o1){
 }
 
 double gravitation(double m1, double m2, double r){
-	return (m1*m2) / (r*r);
+	return (G*m1*m2) / (r*r);
 }
 
-double gravitate(Object& o, Object o1)
+void gravitate(Object& o, Object o1)
 {
 	vector g;
 	double d = distance(o,o1);
@@ -59,36 +62,103 @@ double gravitate(Object& o, Object o1)
 	setAngle(g, a);
 
 	o.v = o.v + g;
-	std::cout << g.direction << 'D' << g.magnitude << '\t' << "x: " << o.v.direction << " y:" << o.v.magnitude;
-	
 }
 
 void print(Object o, Object o1, double r)
 {
-	std::cout << "\nEarth coordinates: " << '(' << o.x << ',' << o.y << ')' << " | " << "Sun coordinates: " << '(' << o1.x << ',' << o1.y << ')';
+	std::cout << "\nEarth coordinates: " << '(' << o.x << ',' << o.y << ')' << " | " << "Mars coordinates: " << '(' << o1.x << ',' << o1.y << ')';
 }
 
 int main()
 {
-	Object Earth (100,100,1,10,-PI/2);
-	Object Sun (0,0,20000,0,0);
+	int ret;
+	SDL_Event event;
+   	SDL_Renderer *renderer;
+    	SDL_Window *window;
+
+    	SDL_Init(SDL_INIT_VIDEO);
+    	SDL_CreateWindowAndRenderer(WINDOW_WIDTH, WINDOW_WIDTH, 0, &window, &renderer);
+    	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+    	SDL_RenderClear(renderer);
+    	SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+	for (int i = 0; i < WINDOW_WIDTH; ++i)
+	{
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+       		SDL_RenderDrawPoint(renderer, i, WINDOW_WIDTH/2);
+	}
+	for (int i = 0; i < WINDOW_WIDTH; ++i)
+	{
+		SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+       		SDL_RenderDrawPoint(renderer, WINDOW_WIDTH/2, i);
+	}
+
+  // 5.972 × 10²⁴
+  //
+
+  	Object Earth (50,200 ,10, 10, -PI*2);
+  	Object Sun (0,0, 90000000000000, 0, 0);
+	Object Mars (-30,-200, 5, 12, 3);
+	
 
 	while(1)
 	{
-	 double r = Sun.x - Earth.x / Sun.y - Earth.y;
-	 
-	 gravitate(Earth,Sun);
-	 
-	 Earth.x += Earth.v.direction;
-	 Earth.y += Earth.v.magnitude;
+		while (SDL_PollEvent(&event)) 
+		{
+			if(event.type == SDL_QUIT)
+				goto ret;
+       			
+    		}	
+	 	double r = Sun.x - Earth.x / Sun.y - Earth.y;
+		
+	 	gravitate(Earth, Sun);
+		gravitate(Mars, Sun);
 
-	 print(Earth,Sun,r);
-	 sleep(0.25);
+		gravitate(Earth, Mars);
+		gravitate(Mars, Earth);
+
+	 	gravitate(Sun, Earth);
+		gravitate(Sun, Mars);
+
+	 	Earth.x += Earth.v.direction;
+		Earth.y += Earth.v.magnitude;
+	 	
+		Mars.x += Mars.v.direction;
+		Mars.y += Mars.v.magnitude;
+	
+ 	
+
+	 	print(Earth, Mars, r);	 
+
+	 	for (int i = 0; i < WINDOW_WIDTH; ++i)
+	 	{
+			SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+       	 		SDL_RenderDrawPoint(renderer, Earth.x+WINDOW_WIDTH/2, -Earth.y+WINDOW_WIDTH/2);
+	 	}
+
+	 	for (int i = 0; i < WINDOW_WIDTH; ++i)
+	 	{
+	 		SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
+	 		SDL_RenderDrawPoint(renderer, Sun.x+WINDOW_WIDTH/2, -Sun.y+WINDOW_WIDTH/2);
+	 	}
+
+		for (int i = 0; i < WINDOW_WIDTH; ++i)
+		{
+			SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
+			SDL_RenderDrawPoint(renderer, Mars.x+WINDOW_WIDTH/2, -Mars.y+WINDOW_WIDTH/2);
+		}
+		SDL_RenderPresent(renderer); 
+   	 
+		SDL_Delay(250);
+		sleep(0.25);
+ 		
 	 
 	}
 
-	
-	
-	
+	ret:;
 
+    	SDL_DestroyRenderer(renderer);
+    	SDL_DestroyWindow(window);
+    	SDL_Quit();
+    
 }
